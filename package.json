@@ -1,0 +1,16 @@
+{
+  "name": "mern-youtube-with-twitter",
+  "version": "1.0.0",
+  "description": "a Complete Video Media App like Youtube with Twitter Integration.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Backend",
+    "Javascript",
+    "Coffee"
+  ],
+  "author": "Ansar Ahmad",
+  "license": "ISC"
+}
