@@ -79,7 +79,7 @@ const registerUser = asyncHandler( async(req,res) => {
 
 
 // USER LOGIN 
-const generateAccessandRefreshToken = async(userId) => {
+const generateAccessAndRefreshToken = async(userId) => {
     try{
         const user  = await User.findById(userId)
         const accessToken =  user.generateAccessToken()
@@ -105,11 +105,11 @@ const loginUser = asyncHandler( async(req,res) => {
 
     const {email, password} = req.body;
 
-    if(!email || !password){
+    if(!email){
         throw new ApiError(400,"email or password cannot be empty")
     }
 
-    const user = await  User.findOne(email)
+    const user = await  User.findOne({email})
     if(!user){
         throw new ApiError(404, "This User Doesnot Exist")
     }
@@ -120,9 +120,9 @@ const loginUser = asyncHandler( async(req,res) => {
         throw new ApiError(404,"Invalid User Credentials")
     }
 
-    const {accessToken, refreshToken} =  await generateAccessandRefreshToken(user._id)
+    const {accessToken, refreshToken} =  await generateAccessAndRefreshToken(user._id)
 
-    const loggedInUser = User.findById(user._id).select("-password -refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
         httpOnly: true,
@@ -164,7 +164,7 @@ const logoutUser = asyncHandler( async(req,res) => {
     return res
     .status(200)
     .clearCookie("accessToken", options)
-    .clearCookie("refresToken", options)
+    .clearCookie("refreshToken", options)
     .json(
         new ApiResponse(200, {}, "User Logged out Successfully")
     )
