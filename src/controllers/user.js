@@ -75,8 +75,102 @@ const registerUser = asyncHandler( async(req,res) => {
     return res.status(201).json(
         new ApiResponse(200, createdUser, "User registered successfully")
     )
-
-
 })
 
-export {registerUser}
+
+// USER LOGIN 
+const generateAccessandRefreshToken = async(userId) => {
+    try{
+        const user  = await User.findById(userId)
+        const accessToken =  user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false})
+
+        return {accessToken, refreshToken}
+
+    }catch(error){
+     throw new ApiError(500,"something Went wrong while generating Refresh and Access Token")   
+    }
+}
+
+const loginUser = asyncHandler( async(req,res) => {
+    //req body <- data
+    //username or email
+    //find user
+    //password
+    //access and refresh token
+    //send cookie
+
+    const {email, password} = req.body;
+
+    if(!email || !password){
+        throw new ApiError(400,"email or password cannot be empty")
+    }
+
+    const user = await  User.findOne(email)
+    if(!user){
+        throw new ApiError(404, "This User Doesnot Exist")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if(!isPasswordValid){
+        throw new ApiError(404,"Invalid User Credentials")
+    }
+
+    const {accessToken, refreshToken} =  await generateAccessandRefreshToken(user._id)
+
+    const loggedInUser = User.findById(user._id).select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+            user: loggedInUser, accessToken, refreshToken
+            },
+            "User Logged in Successfully"
+        )
+    )
+})
+
+const logoutUser = asyncHandler( async(req,res) => {
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new:true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refresToken", options)
+    .json(
+        new ApiResponse(200, {}, "User Logged out Successfully")
+    )
+})
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
